@@ -1,3 +1,5 @@
+use futures::future;
+
 use feed_rs::{
     model::{Entry, Feed},
     parser,
@@ -11,14 +13,14 @@ struct FeedMeta {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let feeds = get_feeds();
+    let feeds_metas = get_feeds();
 
-    for feed_meta in feeds {
-        println!("--- {} ---", feed_meta.name);
-        let feed = get_feed(feed_meta.url.as_str())
-            .await
-            .expect("Encountered an error getting feed");
+    let responses =
+        future::join_all(feeds_metas.iter().map(|meta| get_feed(meta))).await;
 
+    for response in responses {
+        let (name, feed) = response.expect("Encountered error getting feed");
+        println!("--- {} ---", name);
         for entry in feed.entries {
             print_entry(&entry);
         }
@@ -48,17 +50,23 @@ feeds {
         .nodes()
     {
         let name = node.name().to_string().replace("\"", "");
-        let url = node.entries().last().expect("feed missing url").value().to_string().replace("\"", "");
+        let url = node
+            .entries()
+            .last()
+            .expect("feed missing url")
+            .value()
+            .to_string()
+            .replace("\"", "");
         feeds.push(FeedMeta { name, url });
     }
 
     return feeds;
 }
 
-async fn get_feed(feed_url: &str) -> Result<Feed, reqwest::Error> {
-    let resp = reqwest::get(feed_url).await?.text().await?;
+async fn get_feed(meta: &FeedMeta) -> Result<(&String, Feed), reqwest::Error> {
+    let resp = reqwest::get(&meta.url).await?.text().await?;
     let feed = parser::parse(resp.as_bytes()).expect("Failed to parse feed");
-    Ok(feed)
+    Ok((&meta.name, feed))
 }
 
 fn print_entry(entry: &Entry) {
