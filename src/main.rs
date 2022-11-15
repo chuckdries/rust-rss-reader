@@ -1,8 +1,9 @@
-use futures::future;
+use chrono::{DateTime, Utc};
 use feed_rs::{
     model::{Entry, Feed},
     parser,
 };
+use futures::future;
 use kdl::KdlDocument;
 
 struct FeedMeta {
@@ -10,13 +11,20 @@ struct FeedMeta {
     name: String,
 }
 
+struct Story {
+    title: String,
+    url: String,
+    date: DateTime<Utc>,
+    source: String,
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let feeds_metas = get_feeds();
 
-    let responses =
-        future::join_all(feeds_metas.iter().map(|meta| get_feed(meta))).await;
+    let responses = future::join_all(feeds_metas.iter().map(|meta| get_feed(meta))).await;
 
+    let stories: Vec<Story> = vec![];
     for response in responses {
         let (name, feed) = response.expect("Encountered error getting feed");
         println!("--- {} ---", name);
@@ -32,9 +40,9 @@ fn get_feeds() -> Vec<FeedMeta> {
     // TODO: read from file
     let config_str = r#"
 feeds {
-    ArsTechnica "https://feeds.arstechnica.com/arstechnica/index"
-    "The Verge" "http://www.theverge.com/rss/index.xml"
-    "Mother Jones" "http://feeds.feedburner.com/motherjones/feed"
+    Ars "https://feeds.arstechnica.com/arstechnica/index"
+    Verge "http://www.theverge.com/rss/index.xml"
+    MJ "http://feeds.feedburner.com/motherjones/feed"
 }
 "#;
 
@@ -80,7 +88,7 @@ fn print_entry(entry: &Entry) {
         Some(date) => {
             print!(" [{}]", date.naive_utc().format("%c"));
         }
-        None => ()
+        None => (),
     }
     match entry.links.get(0) {
         Some(link) => {
@@ -88,4 +96,16 @@ fn print_entry(entry: &Entry) {
         }
         None => println!(""),
     }
+}
+
+fn entry_to_story(entry: &Entry, source: String) -> Result<Story, String> {
+    let title = entry.title.ok_or("")?.content;
+    let url = entry.links.first().ok_or("")?.href;
+    let date = entry.published.ok_or("asdf")?;
+    Ok(Story {
+        title,
+        url,
+        date,
+        source
+    })
 }
