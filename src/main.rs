@@ -17,6 +17,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn print_entry (entry: &Entry) {
-    let title = entry.title.as_ref().expect("missing title");
-    println!("• {}", title.content)
+    match entry.title.as_ref() {
+        Some(title) => {
+            println!("• {}", title.content);
+        }
+        None => ()
+    }
 }
