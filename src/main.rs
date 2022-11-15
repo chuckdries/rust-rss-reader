@@ -1,20 +1,57 @@
-// use std::collections::HashMap;
 use feed_rs::{
     model::{Entry, Feed},
     parser,
 };
+use kdl::KdlDocument;
+
+struct FeedMeta {
+    url: String,
+    name: String,
+}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let feed = get_feed("https://feeds.arstechnica.com/arstechnica/index")
-        .await
-        .expect("Encountered an error getting feed");
+    let feeds = get_feeds();
 
-    for entry in feed.entries {
-        print_entry(&entry);
+    for feed_meta in feeds {
+        let feed = get_feed(feed_meta.url.as_str())
+            .await
+            .expect("Encountered an error getting feed");
+
+        for entry in feed.entries {
+            print_entry(&entry);
+        }
     }
 
     Ok(())
+}
+
+fn get_feeds() -> Vec<FeedMeta> {
+    // TODO: read from file
+    let config_str = r#"
+feeds {
+    ArsTechnica "https://feeds.arstechnica.com/arstechnica/index"
+}
+"#;
+
+    let doc: KdlDocument = config_str.parse().expect("failed to parse KDL");
+
+    let mut feeds: Vec<FeedMeta> = Vec::new();
+
+    for node in doc
+        .get("feeds")
+        .expect("feeds param missing")
+        .children()
+        .expect("feeds empty")
+        .nodes()
+    {
+        let name = node.name().to_string();
+        let url = node.entries()[0].value().to_string().replace("\"", "");
+        println!("{name} - {url}");
+        feeds.push(FeedMeta { name, url });
+    }
+
+    return feeds;
 }
 
 async fn get_feed(feed_url: &str) -> Result<Feed, reqwest::Error> {
