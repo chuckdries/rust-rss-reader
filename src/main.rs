@@ -19,8 +19,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 fn print_entry (entry: &Entry) {
     match entry.title.as_ref() {
         Some(title) => {
-            println!("• {}", title.content);
+            print!("• {}", title.content);
         }
         None => ()
+    }
+    match entry.links.get(0) {
+        Some(link) => {
+            println!(" - {}", link.href)
+        }
+        None => println!("")
     }
 }
