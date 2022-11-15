@@ -35,6 +35,7 @@ fn get_feeds() -> Vec<FeedMeta> {
 feeds {
     ArsTechnica "https://feeds.arstechnica.com/arstechnica/index"
     "The Verge" "http://www.theverge.com/rss/index.xml"
+    "Mother Jones" "http://feeds.feedburner.com/motherjones/feed"
 }
 "#;
 
@@ -78,7 +79,7 @@ fn print_entry(entry: &Entry) {
     }
     match entry.links.get(0) {
         Some(link) => {
-            println!(" - {}", link.href)
+            println!(" ({})", link.href)
         }
         None => println!(""),
     }
