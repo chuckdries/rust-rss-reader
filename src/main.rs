@@ -1,5 +1,4 @@
 use futures::future;
-
 use feed_rs::{
     model::{Entry, Feed},
     parser,
@@ -76,6 +75,12 @@ fn print_entry(entry: &Entry) {
             print!("• {}", title.content);
         }
         None => (),
+    }
+    match entry.published {
+        Some(date) => {
+            print!(" [{}]", date.naive_utc().format("%c"));
+        }
+        None => ()
     }
     match entry.links.get(0) {
         Some(link) => {
