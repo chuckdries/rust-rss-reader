@@ -14,6 +14,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let feeds = get_feeds();
 
     for feed_meta in feeds {
+        println!("--- {} ---", feed_meta.name);
         let feed = get_feed(feed_meta.url.as_str())
             .await
             .expect("Encountered an error getting feed");
@@ -31,6 +32,7 @@ fn get_feeds() -> Vec<FeedMeta> {
     let config_str = r#"
 feeds {
     ArsTechnica "https://feeds.arstechnica.com/arstechnica/index"
+    "The Verge" "http://www.theverge.com/rss/index.xml"
 }
 "#;
 
@@ -45,9 +47,8 @@ feeds {
         .expect("feeds empty")
         .nodes()
     {
-        let name = node.name().to_string();
-        let url = node.entries()[0].value().to_string().replace("\"", "");
-        println!("{name} - {url}");
+        let name = node.name().to_string().replace("\"", "");
+        let url = node.entries().last().expect("feed missing url").value().to_string().replace("\"", "");
         feeds.push(FeedMeta { name, url });
     }
 
